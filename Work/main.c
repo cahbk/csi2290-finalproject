@@ -27,6 +27,27 @@ int initSqlist(Sqlist* L, int maxsize)
 //FILE* fp = NULL; 
 Sqlist L;
 
+Str* stopWords;//array for stop words
+char* specialCharacters;//to save special characters
+
+//fucntion to delete words from a list
+void deleteWordFromList(Sqlist L, int posInArr) {
+	for (int i = posInArr;i < L.length - 1;i++) {
+		strcpy(L.data[i].word, L.data[i + 1].word);//replace with next words
+		L.length--;//decrease number of words;
+	}
+}
+
+/*for qsort() when ordering array alphabetically
+more info on: https://iq.opengenus.org/qsort-in-c/
+*/
+int compare(const void *a, const void *b) {
+	const Str* wordA = a;
+	const Str* wordB = b;
+	return strcmp(wordA->word, wordB->word);
+}
+
+
 void getWords( FILE* file );
 void printWords();
 
@@ -64,6 +85,68 @@ int main()
 	printwords(f3);
 	printwords(f4);
 */	
+
+	//get stop words
+	stopWords = (Str*)malloc(1024 * sizeof(Str));
+	FILE* stopWordsFile = fopen("stopwords.txt", "r");
+	char str[100];//for scanf
+	int stopWordsCount = 0;
+	while (fscanf(stopWordsFile, "%s",str) == 1) {
+		strcpy(stopWords[stopWordsCount++].word, str);//save stop words into stopWords array
+	}
+	fclose(stopWordsFile);
+	//for testing that stop words got saved
+	/*for (int i = 0;i < stopWordsCount;i++) {
+		printf("%s\n", stopWords[i].word);
+	}*/
+	
+	//get special characters
+	specialCharacters = (char*)malloc(1000);
+	FILE* specialCharFile = fopen("specialcharacters.txt", "r");
+	char c;int spChCount = 0;
+	while ((c = fgetc(specialCharFile)) != EOF) {
+		specialCharacters[spChCount++] = c;
+	}
+	fclose(specialCharFile);
+	//for testing that special characters got saved
+	/*for (int i = 0;i < spChCount;i++) {
+		printf("%c", specialCharacters[i]);
+	}
+	*/
+	
+	/*it is important to convert all characters in the words to lowercase if necessary.
+	 This will be important when computing for freq. and weight.
+	 It will also matter when checking for stop words
+	 ex:
+	 "You'll" and "you'll" should be considered the same word
+	*/
+	for (int i = 0;i < L.length;i++) {
+		for (int j = 0;j < strlen(L.data[i].word);j++) {
+			char c = L.data[i].word[j];
+			if ((c >= 'A') && (c <= 'Z')) {
+				//add 32 to ASCII value of character
+				L.data[i].word[j] = (char)((int)c + 32);
+			}
+		}
+	}
+	
+	//remove stop words
+	for (int i = 0;i < L.length;i++) {
+		int wordIsStopWrd = 0;
+		for (int j = 0;j < stopWordsCount;j++) {
+			if (strcmp(L.data[i].word, stopWords[j].word) == 0) {//check if word is a stop word
+				wordIsStopWrd = 1;//change status of words in array to true
+				break;
+			}
+		}
+		if (wordIsStopWrd == 1) {
+			deleteWordFromList(L, i);
+		}
+	}
+
+	//alphabetize
+	qsort(L.data, L.length, sizeof(*L.data), compare);
+
 	//test：
 	for (int i = 0; i < L.length; i++)
 	{
